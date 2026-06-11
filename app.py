@@ -9,23 +9,26 @@ from io import BytesIO
 # --- 1. 페이지 설정 ---
 st.set_page_config(page_title="유튜브 재생목록 추출기", page_icon="✨", layout="centered")
 
-# --- 2. 디자인 (CSS) - 메뉴판 글자색 버그 완벽 수정 ---
+# --- 2. 디자인 (CSS) - 다크모드 아이콘 및 플레이스홀더 완벽 패치 ---
 st.markdown("""
     <style>
-    /* 메인 화면 배경을 밝은 톤으로 고정 */
+    /* 전체 배경을 밝은 톤으로 고정 */
     .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"] { 
         background-color: #FFFDFD !important; 
     }
     
-    /* 상단 우측 헤더 영역 아이콘 가독성 고정 */
+    /* 💡 1. 상단 우측 스팀릿 관리자 아이콘들(별, 연필, 깃허브, 메뉴) 다크모드 투명화 현상 해결 */
     [data-testid="stHeader"] button, 
     [data-testid="stHeader"] a, 
-    [data-testid="stHeader"] span {
+    [data-testid="stHeader"] span,
+    [data-testid="stHeader"] svg,
+    .stAppDeployButton, 
+    .stAppViewerButton {
         color: #333333 !important;
         fill: #333333 !important;
     }
     
-    /* 💡 수정 포인트 1: 메인 뷰포트 내부 텍스트만 짙은 회색으로 지정하여 드롭다운 메뉴 침범 방지 */
+    /* 메인 뷰포트 내부 텍스트 컬러 지정 */
     [data-testid="stAppViewContainer"] p, 
     [data-testid="stAppViewContainer"] span, 
     [data-testid="stAppViewContainer"] label, 
@@ -36,11 +39,11 @@ st.markdown("""
         color: #333333 !important;
     }
 
-    /* 💡 수정 포인트 2: 우측 상단 점 세 개 메뉴를 눌렀을 때 나오는 드롭다운 팝업창 글자색 복구 */
+    /* 우측 상단 점 세 개 메뉴 내부 스타일 유지 */
     div[data-baseweb="popover"] *, 
     div[data-testid="main-menu-popover"] *,
     .stPopover * {
-        color: inherit !important; /* 스팀릿 원래 테마(다크모드용 흰 글씨)를 따르도록 고정 */
+        color: inherit !important;
     }
 
     /* 제목 색상 */
@@ -64,6 +67,14 @@ st.markdown("""
         background-color: #FFFFFF !important;
         box-shadow: none !important;
     }
+    
+    /* 💡 2. 입력창 안의 예시 텍스트(Placeholder) 다크모드에서도 선명하게 고정 */
+    .stTextInput input::placeholder {
+        color: #888888 !important;
+        -webkit-text-fill-color: #888888 !important;
+        opacity: 1 !important;
+    }
+    
     .stTextInput input:focus {
         border-color: #FFB7C5 !important;
         outline: none !important;
@@ -150,7 +161,7 @@ if extract_btn:
                 # --- 5. 결과 전시 및 레이아웃 재배치 섹션 ---
                 st.divider()
                 
-                # 상단 헤더 영역 (제목과 다운로드 버튼을 나란히 배치)
+                # 상단 헤더 영역
                 header_col1, header_col2 = st.columns([2.5, 1.5])
                 
                 with header_col1:
