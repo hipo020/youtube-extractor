@@ -6,41 +6,55 @@ import pandas as pd
 import time
 from io import BytesIO
 
-# --- 1. 페이지 설정 (다시 중앙 정렬로 복구) ---
+# --- 1. 페이지 설정 (중앙 정렬) ---
 st.set_page_config(page_title="유튜브 재생목록 추출기", page_icon="✨", layout="centered")
 
-# --- 2. 귀여운 UI 디자인 (CSS) ---
+# --- 2. 귀여운 UI 디자인 (가독성 개선 CSS) ---
 st.markdown("""
     <style>
     /* 부드러운 배경색 */
     .stApp { background-color: #FFFDFD; }
+    
+    /* 💡 전체 기본 글자색을 진한 짙은 회색으로 고정 (가독성 향상) */
+    html, body, p, div, span, label, li {
+        color: #333333 !important;
+    }
+
+    /* 💡 제목 색상을 좀 더 진하고 선명한 핑크로 변경 */
+    h1 { color: #FF6B8B !important; font-weight: 800; }
     
     /* 동글동글한 입력창 */
     .stTextInput input {
         border-radius: 15px !important;
         border: 2px solid #FFE4E8 !important;
         padding: 10px 15px !important;
+        color: #333333 !important; /* 입력하는 글자도 진하게 */
+        background-color: #FFFFFF !important;
+    }
+    .stTextInput input::placeholder {
+        color: #999999 !important; /* 안내 문구는 적당한 회색으로 */
     }
     .stTextInput input:focus {
         border-color: #FFB7C5 !important;
-        box-shadow: 0 0 0 0.2rem rgba(255, 183, 197, 0.25) !important;
+        box-shadow: 0 0 0 0.2rem rgba(255, 183, 197, 0.4) !important;
     }
 
-    /* 파스텔톤 둥근 버튼 */
+    /* 파스텔톤 둥근 버튼 (가독성을 위해 글자를 초코 브라운으로 변경) */
     .stButton>button {
         width: 100%;
         border-radius: 20px;
         height: 3em;
         background-color: #FFB7C5;
-        color: white;
-        font-weight: bold;
+        color: #5D4037 !important; /* 💡 하얀색 대신 진한 초코색으로 눈에 띄게! */
+        font-weight: 900 !important;
+        font-size: 16px;
         border: none;
         transition: all 0.2s ease;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        box-shadow: 0 4px 6px rgba(255, 183, 197, 0.3);
     }
     .stButton>button:hover {
-        background-color: #FF9EAE;
-        color: white;
+        background-color: #FFA5B5;
+        color: #5D4037 !important;
         transform: translateY(-2px);
     }
 
@@ -49,7 +63,7 @@ st.markdown("""
         background-color: white;
         padding: 25px;
         border-radius: 20px;
-        box-shadow: 0 8px 20px rgba(255, 183, 197, 0.15);
+        box-shadow: 0 8px 20px rgba(255, 183, 197, 0.2);
         border: 1px solid #FFF0F2;
         margin-bottom: 25px;
     }
