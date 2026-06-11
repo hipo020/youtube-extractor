@@ -9,29 +9,44 @@ from io import BytesIO
 # --- 1. 페이지 설정 ---
 st.set_page_config(page_title="유튜브 재생목록 추출기", page_icon="✨", layout="centered")
 
-# --- 2. 디자인 (CSS) - 다크모드 버그 완벽 수정 ---
+# --- 2. 디자인 (CSS) - 메뉴판 글자색 버그 완벽 수정 ---
 st.markdown("""
     <style>
-    /* 전체 배경을 밝은 톤으로 고정 */
+    /* 메인 화면 배경을 밝은 톤으로 고정 */
     .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"] { 
         background-color: #FFFDFD !important; 
     }
     
-    /* 💡 1. 상단 우측 메뉴 영역 아이콘 가독성 고정 (SVG 이미지 색상 강제 지정) */
-    [data-testid="stHeader"] * {
+    /* 상단 우측 헤더 영역 아이콘 가독성 고정 */
+    [data-testid="stHeader"] button, 
+    [data-testid="stHeader"] a, 
+    [data-testid="stHeader"] span {
         color: #333333 !important;
         fill: #333333 !important;
     }
     
-    /* 전체 텍스트 컬러 지정 */
-    html, body, p, span, label, li, h2, h3, h4, div {
+    /* 💡 수정 포인트 1: 메인 뷰포트 내부 텍스트만 짙은 회색으로 지정하여 드롭다운 메뉴 침범 방지 */
+    [data-testid="stAppViewContainer"] p, 
+    [data-testid="stAppViewContainer"] span, 
+    [data-testid="stAppViewContainer"] label, 
+    [data-testid="stAppViewContainer"] li, 
+    [data-testid="stAppViewContainer"] h2, 
+    [data-testid="stAppViewContainer"] h3, 
+    [data-testid="stAppViewContainer"] h4 {
         color: #333333 !important;
+    }
+
+    /* 💡 수정 포인트 2: 우측 상단 점 세 개 메뉴를 눌렀을 때 나오는 드롭다운 팝업창 글자색 복구 */
+    div[data-baseweb="popover"] *, 
+    div[data-testid="main-menu-popover"] *,
+    .stPopover * {
+        color: inherit !important; /* 스팀릿 원래 테마(다크모드용 흰 글씨)를 따르도록 고정 */
     }
 
     /* 제목 색상 */
     h1 { color: #FF6B8B !important; font-weight: 800; }
     
-    /* 💡 2. 다크모드 검정 모서리 튀어나옴 완벽 제거 (바깥쪽 껍데기들 투명화) */
+    /* 다크모드 검정 모서리 튀어나옴 제거 */
     .stTextInput [data-baseweb="input"], 
     .stTextInput [data-baseweb="base-input"] {
         background-color: transparent !important;
@@ -40,7 +55,7 @@ st.markdown("""
         box-shadow: none !important;
     }
     
-    /* 💡 3. 실제 입력창에만 둥근 핑크색 테두리와 하얀 배경 적용 */
+    /* 실제 입력창 디자인 */
     .stTextInput input {
         border-radius: 15px !important;
         border: 2px solid #FFE4E8 !important;
@@ -142,7 +157,6 @@ if extract_btn:
                     st.subheader("📊 분석 결과 미리보기")
                 
                 with header_col2:
-                    # 엑셀 다운로드 파일 생성 및 버튼 배치
                     excel_df = df.copy()
                     excel_df["영상 URL"] = excel_df["영상 URL"].apply(lambda x: f'=HYPERLINK("{x}", "링크 열기")')
                     output = BytesIO()
