@@ -9,7 +9,7 @@ from io import BytesIO
 # --- 1. 페이지 설정 ---
 st.set_page_config(page_title="유튜브 재생목록 추출기", page_icon="✨", layout="centered")
 
-# --- 2. 디자인 (CSS) 수정 및 보완 ---
+# --- 2. 디자인 (CSS) - 다크모드 버그 완벽 수정 ---
 st.markdown("""
     <style>
     /* 전체 배경을 밝은 톤으로 고정 */
@@ -17,11 +17,8 @@ st.markdown("""
         background-color: #FFFDFD !important; 
     }
     
-    /* 상단 우측 메뉴 영역 아이콘 가독성 고정 */
-    [data-testid="stHeader"] button, 
-    [data-testid="stHeader"] a, 
-    [data-testid="stHeader"] span,
-    .stMainMenu div, .stMainMenu button {
+    /* 💡 1. 상단 우측 메뉴 영역 아이콘 가독성 고정 (SVG 이미지 색상 강제 지정) */
+    [data-testid="stHeader"] * {
         color: #333333 !important;
         fill: #333333 !important;
     }
@@ -34,12 +31,16 @@ st.markdown("""
     /* 제목 색상 */
     h1 { color: #FF6B8B !important; font-weight: 800; }
     
-    /* 💡 입력창 테두리 이중 겹침 현상 해결 (기본 테두리 및 그림자 완전 제거 후 한 줄로 변경) */
-    .stTextInput div[data-baseweb="input"] {
-        border: none !important;
+    /* 💡 2. 다크모드 검정 모서리 튀어나옴 완벽 제거 (바깥쪽 껍데기들 투명화) */
+    .stTextInput [data-baseweb="input"], 
+    .stTextInput [data-baseweb="base-input"] {
         background-color: transparent !important;
+        background: transparent !important;
+        border: none !important;
         box-shadow: none !important;
     }
+    
+    /* 💡 3. 실제 입력창에만 둥근 핑크색 테두리와 하얀 배경 적용 */
     .stTextInput input {
         border-radius: 15px !important;
         border: 2px solid #FFE4E8 !important;
@@ -74,15 +75,6 @@ st.markdown("""
         background-color: #FF9EAE !important;
         color: #333333 !important;
         transform: translateY(-2px) !important;
-    }
-    
-    /* 타이틀과 다운로드 버튼 정렬을 위한 헬퍼 스타일 */
-    .title-container {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-top: 1.5rem;
-        margin-bottom: 0.5rem;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -143,7 +135,7 @@ if extract_btn:
                 # --- 5. 결과 전시 및 레이아웃 재배치 섹션 ---
                 st.divider()
                 
-                # 💡 빨간색 상자 영역에 다운로드 버튼 배치하기 위한 레이아웃 구성
+                # 상단 헤더 영역 (제목과 다운로드 버튼을 나란히 배치)
                 header_col1, header_col2 = st.columns([2.5, 1.5])
                 
                 with header_col1:
