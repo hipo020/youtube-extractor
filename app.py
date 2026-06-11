@@ -6,134 +6,133 @@ import pandas as pd
 import time
 from io import BytesIO
 
-# 웹페이지 기본 설정
-st.set_page_config(page_title="유튜브 재생목록 추출기", page_icon="📊", layout="centered")
+# --- 1. 페이지 설정 및 디자인 CSS ---
+st.set_page_config(page_title="YouTube Data Intelligence", page_icon="📈", layout="wide")
 
-st.title("📊 유튜브 재생목록 엑셀 추출 도구")
-st.write("유튜브 재생목록 링크를 입력하면 제목, URL, 설명란을 깔끔하게 정리하여 엑셀로 뽑아줍니다.")
-st.caption("⚠️ 필터링 적용 완료: 제목 뒤 차명 제거, 해시태그 제거, '*'로 시작하는 설명 문장 제거 (클릭 가능한 링크 적용)")
+# 커스텀 CSS 주입 (디자인 개선)
+st.markdown("""
+    <style>
+    .main { background-color: #f8f9fa; }
+    .stButton>button {
+        width: 100%;
+        border-radius: 5px;
+        height: 3em;
+        background-color: #004085;
+        color: white;
+        font-weight: bold;
+        border: none;
+    }
+    .stButton>button:hover { background-color: #0056b3; color: white; }
+    .reportview-container .main .block-container { padding-top: 2rem; }
+    h1 { color: #1a1a1a; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+    .status-box {
+        padding: 20px;
+        border-radius: 10px;
+        background-color: #ffffff;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
-# URL 입력창
-url_input = st.text_input("유튜브 재생목록 URL을 입력하세요:", placeholder="https://www.youtube.com/playlist?list=...")
+# --- 2. 사이드바 (도움말 및 설정) ---
+with st.sidebar:
+    st.title("⚙️ 설정 및 도움말")
+    st.info("""
+    **사용 방법:**
+    1. 유튜브 재생목록 URL 입력
+    2. 데이터 추출 버튼 클릭
+    3. 미리보기 확인 후 엑셀 다운로드
+    """)
+    st.divider()
+    st.caption("v2.0 | Developed for Team Sharing")
 
-# 추출 버튼 클릭 시 실행
-if st.button("🚀 데이터 추출 및 엑셀 만들기", type="primary"):
-    if not url_input:
-        st.error("URL을 입력해주세요!")
-    elif "list=" not in url_input:
-        st.error("올바른 유튜브 재생목록 URL이 아닙니다. 주소에 'list='이 포함되어 있는지 확인해주세요.")
+# --- 3. 메인 화면 구성 ---
+st.title("🎥 YouTube Playlist Intelligence")
+st.write("전문적인 업무 효율을 위한 유튜브 재생목록 데이터 분석 도구입니다.")
+
+# 입력 섹션
+with st.container():
+    st.markdown('<div class="status-box">', unsafe_allow_html=True)
+    col1, col2 = st.columns([4, 1])
+    with col1:
+        url_input = st.text_input("분석할 유튜브 재생목록 URL을 입력하세요", placeholder="https://www.youtube.com/playlist?list=...")
+    with col2:
+        st.write(" ") # 간격 맞추기
+        st.write(" ")
+        extract_btn = st.button("데이터 분석 시작")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# --- 4. 로직 처리 섹션 ---
+if extract_btn:
+    if not url_input or "list=" not in url_input:
+        st.error("올바른 재생목록 URL을 입력해주세요.")
     else:
-        with st.spinner("재생목록에서 영상 목록을 분석하는 중..."):
-            try:
-                headers = {
-                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-                    "Accept-Language": "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7"
-                }
+        # 데이터 추출 시작
+        status_placeholder = st.empty()
+        progress_bar = st.progress(0)
+        
+        try:
+            headers = {"User-Agent": "Mozilla/5.0"}
+            res = requests.get(url_input, headers=headers)
+            video_ids = list(dict.fromkeys(re.findall(r'"videoId":"([a-zA-Z0-9_-]{11})"', res.text)))
+            
+            if not video_ids:
+                st.warning("영상을 찾을 수 없습니다.")
+            else:
+                results = []
+                for idx, v_id in enumerate(video_ids):
+                    # 진행 상태 업데이트
+                    percent = (idx + 1) / len(video_ids)
+                    progress_bar.progress(percent)
+                    status_placeholder.markdown(f"🔍 **데이터 분석 중:** {idx+1} / {len(video_ids)} 완료")
+                    
+                    v_url = f"https://www.youtube.com/watch?v={v_id}"
+                    v_res = requests.get(v_url, headers=headers)
+                    
+                    title, desc = f"영상 {idx+1}", ""
+                    player_match = re.search(r"ytInitialPlayerResponse\s*=\s*(\{.*?\});", v_res.text)
+                    if player_match:
+                        pj = json.loads(player_match.group(1))
+                        title = pj.get("videoDetails", {}).get("title", title)
+                        desc = pj.get("videoDetails", {}).get("shortDescription", "")
+                    
+                    # 규칙 적용 (차명, 별표 문자, 해시태그 제거)
+                    title = re.split(r'｜|\|', title)[0].strip()
+                    desc = re.sub(r'^\*.*$', '', desc, flags=re.MULTILINE)
+                    desc = re.sub(r'#\S+', '', desc).strip()
+                    
+                    results.append({"영상 제목": title, "영상 URL": v_url, "영상 설명": desc})
+                    time.sleep(0.3)
+
+                status_placeholder.success(f"✅ 총 {len(results)}개의 데이터 분석이 완료되었습니다!")
+                df = pd.DataFrame(results)
+
+                # --- 5. 결과 전시 및 다운로드 섹션 ---
+                st.divider()
+                tab1, tab2 = st.tabs(["📊 분석 결과 미리보기", "💾 데이터 내보내기"])
                 
-                # 재생목록 페이지 소스 가져오기
-                res = requests.get(url_input, headers=headers)
-                html = res.text
+                with tab1:
+                    st.dataframe(df, use_container_width=True, hide_index=True,
+                                 column_config={"영상 URL": st.column_config.LinkColumn()})
                 
-                # 재생목록 내의 고유 영상 ID 추출
-                video_ids = re.findall(r'"videoId":"([a-zA-Z0-9_-]{11})"', html)
-                video_ids = list(dict.fromkeys(video_ids))  # 중복 제거
-                
-                if not video_ids:
-                    st.error("재생목록에서 영상을 찾지 못했습니다. 공개 또는 일부공개 상태인지 확인해주세요.")
-                else:
-                    st.info(f"총 {len(video_ids)}개의 영상을 찾았습니다. 데이터 수집을 시작합니다.")
+                with tab2:
+                    c1, c2 = st.columns(2)
                     
-                    # 진행 바 설정
-                    progress_bar = st.progress(0)
-                    status_text = st.empty()
+                    # 1. 엑셀 다운로드 기능
+                    with c1:
+                        excel_df = df.copy()
+                        excel_df["영상 URL"] = excel_df["영상 URL"].apply(lambda x: f'=HYPERLINK("{x}", "링크 열기")')
+                        output = BytesIO()
+                        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                            excel_df.to_excel(writer, index=False, sheet_name='YouTube_Data')
+                        st.download_button("📥 엑셀 파일 다운로드", output.getvalue(), 
+                                         file_name="youtube_analysis.xlsx", mime="application/vnd.ms-excel")
                     
-                    results = []
-                    
-                    # 각 영상별로 돌면서 상세 정보 추출
-                    for idx, v_id in enumerate(video_ids):
-                        status_text.text(f"⏳ 데이터 수집 중... ({idx + 1} / {len(video_ids)})")
-                        progress_bar.progress((idx + 1) / len(video_ids))
-                        
-                        v_url = f"https://www.youtube.com/watch?v={v_id}"
-                        
-                        try:
-                            v_res = requests.get(v_url, headers=headers)
-                            v_html = v_res.text
-                            
-                            title = f"영상 {idx+1}"
-                            description = ""
-                            
-                            # 유튜브 내부 JSON 데이터 파싱
-                            player_match = re.search(r"ytInitialPlayerResponse\s*=\s*(\{.*?\});", v_html)
-                            if player_match:
-                                player_json = json.loads(player_match.group(1))
-                                video_details = player_json.get("videoDetails", {})
-                                title = video_details.get("title", title)
-                                description = video_details.get("shortDescription", "")
-                            
-                            # 규칙 1: 제목에서 '｜' 또는 '|' 뒤의 내용(차명) 제거
-                            title = re.split(r'｜|\|', title)[0].strip()
-                            
-                            # 규칙 2: 설명란 필터링
-                            if description:
-                                # '*' 기호로 시작하는 줄 통째로 삭제
-                                description = re.sub(r'^\*.*$', '', description, flags=re.MULTILINE)
-                                # 해시태그(#태그) 제거
-                                description = re.sub(r'#\S+', '', description)
-                                # 불필요한 빈 줄 제거 및 양끝 공백 정리
-                                description = re.sub(r'\n\s*\n', '\n', description).strip()
-                            else:
-                                description = "(설명 없음)"
-                                
-                            results.append({
-                                "영상 제목": title,
-                                "영상 URL": v_url,
-                                "영상 설명": description
-                            })
-                            
-                        except Exception as e:
-                            results.append({
-                                "영상 제목": "오류 발생",
-                                "영상 URL": v_url,
-                                "영상 설명": f"추출 실패: {str(e)}"
-                            })
-                        
-                        # 차단 방지를 위한 짧은 휴식 (0.4초)
-                        time.sleep(0.4)
-                    
-                    status_text.text("✨ 모든 데이터 추출 완료!")
-                    
-                    # 데이터프레임 생성
-                    df = pd.DataFrame(results)
-                    st.subheader("📊 추출 결과 미리보기")
-                    
-                    # 💡 변경 포인트 1: 웹 화면 표에서도 URL을 클릭하면 바로 이동하도록 설정 (LinkColumn)
-                    st.dataframe(
-                        df, 
-                        use_container_width=True, 
-                        hide_index=True,
-                        column_config={
-                            "영상 URL": st.column_config.LinkColumn("영상 URL")
-                        }
-                    )
-                    
-                    # 💡 변경 포인트 2: 엑셀 전용 데이터프레임을 복사해 URL 컬럼에 엑셀 하이퍼링크 공식 적용
-                    excel_df = df.copy()
-                    excel_df["영상 URL"] = excel_df["영상 URL"].apply(lambda url: f'=HYPERLINK("{url}", "{url}")')
-                    
-                    # 메모리상에 엑셀 파일 생성
-                    output = BytesIO()
-                    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-                        excel_df.to_excel(writer, index=False, sheet_name='유튜브 추출 데이터')
-                    excel_data = output.getvalue()
-                    
-                    # 📥 엑셀 다운로드 버튼 등장
-                    st.download_button(
-                        label="📥 엑셀 파일(.xlsx) 다운로드",
-                        data=excel_data,
-                        file_name="유튜브_재생목록_추출결과.xlsx",
-                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                    )
-                    
-            except Exception as e:
-                st.error(f"프로그램 실행 중 오류가 발생했습니다: {str(e)}")
+                    # 2. 구글 시트 바로가기 기능 (마법의 단축 주소 적용)
+                    with c2:
+                        st.link_button("📝 구글 시트로 열기", "https://sheets.new")
+                        st.caption("💡 팁: 위 버튼을 눌러 빈 시트를 연 뒤, 다운로드한 엑셀 파일을 화면에 드래그하면 즉시 불러와집니다!")
+
+        except Exception as e:
+            st.error(f"오류 발생: {e}")
