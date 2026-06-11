@@ -11,7 +11,7 @@ st.set_page_config(page_title="유튜브 재생목록 추출기", page_icon="�
 
 st.title("📊 유튜브 재생목록 엑셀 추출 도구")
 st.write("유튜브 재생목록 링크를 입력하면 제목, URL, 설명란을 깔끔하게 정리하여 엑셀로 뽑아줍니다.")
-st.caption("⚠️ 필터링 적용 완료: 제목 뒤 차명 제거, 해시태그 제거, '*'로 시작하는 설명 문장 제거 (번호 칸 제외)")
+st.caption("⚠️ 필터링 적용 완료: 제목 뒤 차명 제거, 해시태그 제거, '*'로 시작하는 설명 문장 제거 (클릭 가능한 링크 적용)")
 
 # URL 입력창
 url_input = st.text_input("유튜브 재생목록 URL을 입력하세요:", placeholder="https://www.youtube.com/playlist?list=...")
@@ -85,7 +85,6 @@ if st.button("🚀 데이터 추출 및 엑셀 만들기", type="primary"):
                             else:
                                 description = "(설명 없음)"
                                 
-                            # 💡 변경 포인트 1: 데이터 저장 시 "번호" 자체를 아예 제외
                             results.append({
                                 "영상 제목": title,
                                 "영상 URL": v_url,
@@ -108,13 +107,24 @@ if st.button("🚀 데이터 추출 및 엑셀 만들기", type="primary"):
                     df = pd.DataFrame(results)
                     st.subheader("📊 추출 결과 미리보기")
                     
-                    # 💡 변경 포인트 2: hide_index=True 를 추가하여 웹 화면 프리뷰에서도 자동 순번을 숨김
-                    st.dataframe(df, use_container_width=True, hide_index=True)
+                    # 💡 변경 포인트 1: 웹 화면 표에서도 URL을 클릭하면 바로 이동하도록 설정 (LinkColumn)
+                    st.dataframe(
+                        df, 
+                        use_container_width=True, 
+                        hide_index=True,
+                        column_config={
+                            "영상 URL": st.column_config.LinkColumn("영상 URL")
+                        }
+                    )
+                    
+                    # 💡 변경 포인트 2: 엑셀 전용 데이터프레임을 복사해 URL 컬럼에 엑셀 하이퍼링크 공식 적용
+                    excel_df = df.copy()
+                    excel_df["영상 URL"] = excel_df["영상 URL"].apply(lambda url: f'=HYPERLINK("{url}", "{url}")')
                     
                     # 메모리상에 엑셀 파일 생성
                     output = BytesIO()
                     with pd.ExcelWriter(output, engine='openpyxl') as writer:
-                        df.to_excel(writer, index=False, sheet_name='유튜브 추출 데이터')
+                        excel_df.to_excel(writer, index=False, sheet_name='유튜브 추출 데이터')
                     excel_data = output.getvalue()
                     
                     # 📥 엑셀 다운로드 버튼 등장
