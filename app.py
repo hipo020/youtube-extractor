@@ -9,60 +9,80 @@ from io import BytesIO
 # --- 1. 페이지 설정 ---
 st.set_page_config(page_title="유튜브 재생목록 추출기", page_icon="✨", layout="centered")
 
-# --- 2. 디자인 (CSS) 확실하게 고정 ---
+# --- 2. 디자인 (CSS) 수정 및 보완 ---
 st.markdown("""
     <style>
-    /* 전체 배경색 */
-    .stApp { background-color: #FFFDFD; }
+    /* 전체 배경을 밝은 톤으로 고정 */
+    .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"] { 
+        background-color: #FFFDFD !important; 
+    }
     
-    /* 전체 글자색을 짙은 회색으로 고정 (다크모드에서도 잘 보이게) */
-    html, body, p, span, label, li, h2, h3, h4 {
+    /* 상단 우측 메뉴 영역 아이콘 가독성 고정 */
+    [data-testid="stHeader"] button, 
+    [data-testid="stHeader"] a, 
+    [data-testid="stHeader"] span,
+    .stMainMenu div, .stMainMenu button {
+        color: #333333 !important;
+        fill: #333333 !important;
+    }
+    
+    /* 전체 텍스트 컬러 지정 */
+    html, body, p, span, label, li, h2, h3, h4, div {
         color: #333333 !important;
     }
 
     /* 제목 색상 */
     h1 { color: #FF6B8B !important; font-weight: 800; }
     
-    /* 입력창 디자인 */
+    /* 💡 입력창 테두리 이중 겹침 현상 해결 (기본 테두리 및 그림자 완전 제거 후 한 줄로 변경) */
+    .stTextInput div[data-baseweb="input"] {
+        border: none !important;
+        background-color: transparent !important;
+        box-shadow: none !important;
+    }
     .stTextInput input {
         border-radius: 15px !important;
         border: 2px solid #FFE4E8 !important;
         padding: 10px 15px !important;
         color: #333333 !important;
         background-color: #FFFFFF !important;
+        box-shadow: none !important;
     }
-    .stTextInput input::placeholder { color: #999999 !important; }
     .stTextInput input:focus {
         border-color: #FFB7C5 !important;
+        outline: none !important;
         box-shadow: 0 0 0 0.2rem rgba(255, 183, 197, 0.4) !important;
     }
 
-    /* 💡 핵심: 모든 종류의 버튼(추출, 다운로드, 링크)을 동일하고 뚜렷하게 설정 */
+    /* 버튼 스타일 디자인 통합 */
     div[data-testid="stButton"] > button,
-    div[data-testid="stDownloadButton"] > button,
-    a[data-testid="stLinkButton"] {
+    div[data-testid="stDownloadButton"] > button {
         width: 100% !important;
         border-radius: 15px !important;
         height: 3.2em !important;
-        background-color: #FFB7C5 !important; /* 파스텔 핑크 배경 */
-        color: #5D4037 !important; /* 🌟 진한 초코 브라운 글자 (절대 안 묻힘) */
+        background-color: #FFB7C5 !important;
+        color: #5D4037 !important;
         font-weight: 900 !important;
         font-size: 16px !important;
         border: none !important;
         transition: all 0.2s ease !important;
         box-shadow: 0 4px 6px rgba(255, 183, 197, 0.3) !important;
-        text-decoration: none !important;
-        display: inline-flex !important;
-        align-items: center !important;
-        justify-content: center !important;
     }
     
     div[data-testid="stButton"] > button:hover,
-    div[data-testid="stDownloadButton"] > button:hover,
-    a[data-testid="stLinkButton"]:hover {
+    div[data-testid="stDownloadButton"] > button:hover {
         background-color: #FF9EAE !important;
         color: #333333 !important;
         transform: translateY(-2px) !important;
+    }
+    
+    /* 타이틀과 다운로드 버튼 정렬을 위한 헬퍼 스타일 */
+    .title-container {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 1.5rem;
+        margin-bottom: 0.5rem;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -70,9 +90,9 @@ st.markdown("""
 # --- 3. 메인 화면 구성 ---
 st.title("✨ 유튜브 재생목록 추출기")
 st.write("유튜브 링크를 입력하면 제목, URL, 설명란을 깔끔하게 엑셀로 정리해 드립니다.")
-st.write("") # 간격 띄우기
+st.write("") 
 
-# 입력 섹션 (오류를 일으키던 HTML 빈 박스 제거)
+# 입력 섹션
 url_input = st.text_input("분석할 유튜브 재생목록 URL을 입력하세요", placeholder="https://www.youtube.com/playlist?list=...")
 extract_btn = st.button("데이터 분석 시작")
 
@@ -120,34 +140,33 @@ if extract_btn:
                 status_placeholder.success(f"✅ 총 {len(results)}개의 데이터 추출이 완료되었습니다!")
                 df = pd.DataFrame(results)
 
-                # --- 5. 탭 제거 후 한 화면에 모두 표시 ---
+                # --- 5. 결과 전시 및 레이아웃 재배치 섹션 ---
                 st.divider()
                 
-                # 결과 미리보기 표
-                st.subheader("📊 분석 결과 미리보기")
-                st.dataframe(df, use_container_width=True, hide_index=True,
-                             column_config={"영상 URL": st.column_config.LinkColumn()})
+                # 💡 빨간색 상자 영역에 다운로드 버튼 배치하기 위한 레이아웃 구성
+                header_col1, header_col2 = st.columns([2.5, 1.5])
                 
-                st.write("") # 간격 띄우기
+                with header_col1:
+                    st.subheader("📊 분석 결과 미리보기")
                 
-                # 저장 및 내보내기 버튼들
-                st.subheader("💾 저장 및 내보내기")
-                col_save1, col_save2 = st.columns(2)
-                
-                with col_save1:
+                with header_col2:
+                    # 엑셀 다운로드 파일 생성 및 버튼 배치
                     excel_df = df.copy()
                     excel_df["영상 URL"] = excel_df["영상 URL"].apply(lambda x: f'=HYPERLINK("{x}", "링크 열기")')
                     output = BytesIO()
                     with pd.ExcelWriter(output, engine='openpyxl') as writer:
                         excel_df.to_excel(writer, index=False, sheet_name='YouTube_Data')
-                    st.download_button("📥 엑셀 파일 다운로드", output.getvalue(), 
-                                     file_name="유튜브_추출결과.xlsx", mime="application/vnd.ms-excel")
+                    
+                    st.download_button(
+                        label="📥 엑셀 파일 다운로드", 
+                        data=output.getvalue(), 
+                        file_name="유튜브_추출결과.xlsx", 
+                        mime="application/vnd.ms-excel"
+                    )
                 
-                with col_save2:
-                    st.link_button("📝 구글 시트로 열기", "https://sheets.new")
-                
-                # 하단 팁 안내
-                st.caption("💡 **Tip:** [구글 시트로 열기] 버튼을 눌러 새 시트를 띄운 뒤, 다운로드한 엑셀 파일을 마우스로 끌어다 놓으면 즉시 불러와집니다.")
+                # 결과 미리보기 표 출력
+                st.dataframe(df, use_container_width=True, hide_index=True,
+                             column_config={"영상 URL": st.column_config.LinkColumn()})
 
         except Exception as e:
             st.error(f"오류가 발생했습니다: {e}")
