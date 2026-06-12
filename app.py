@@ -171,9 +171,15 @@ if extract_btn:
                     # 제목 정리
                     title = re.split(r'｜|\|', title)[0].strip()
 
-                    # 설명 정리
+                    # 설명 정리 (필터링 규칙 추가)
+                    # 💡 1. 기아 저작권 문구 통째로 제거 (정규식을 활용해 줄바꿈이 있어도 삭제)
+                    desc = re.sub(r'© 기아 주식회사.*?활용할 수 있습니다\.?', '', desc, flags=re.DOTALL)
+                    # 2. 별표(*) 시작 문장 제거
                     desc = re.sub(r'^\*.*$', '', desc, flags=re.MULTILINE)
-                    desc = re.sub(r'#\S+', '', desc).strip()
+                    # 3. 해시태그 제거
+                    desc = re.sub(r'#\S+', '', desc)
+                    # 4. 불필요한 앞뒤 공백 및 빈 줄 정리
+                    desc = desc.strip()
 
                     if not desc:
                         desc = "(설명 없음)"
@@ -184,7 +190,8 @@ if extract_btn:
                         "영상 설명": desc
                     })
 
-                    time.sleep(0.3)
+                    # 💡 유튜브 봇 차단을 피하기 위해 대기 시간을 0.3초 -> 0.5초로 증가
+                    time.sleep(0.5)
 
                 status_placeholder.success(
                     f"✅ 총 {len(results)}개의 데이터 추출이 완료되었습니다!"
